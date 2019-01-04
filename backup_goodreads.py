@@ -187,6 +187,25 @@ def get_reviews(user_id, api_key):
         yield data
 
 
+def write_reviews_to_disk(reviews, output_dir, keep_empty=False):
+    """Writes review data to disk as JSON file.
+
+    :param reviews: The review data to dump to file.
+    :param output_dir: The directory where the file will be created.
+    :param keep_empty: If reviews without a rating nor review text should be
+                       included in the file.
+
+    """
+    filtered_reviews = reviews
+    if not keep_empty:
+        filtered_reviews = [d for d in filtered_reviews if d['my_rating'] or d['review']]
+
+    json_str = json.dumps(filtered_reviews, indent=2, sort_keys=True)
+    filename = os.path.join(output_dir, 'goodreads_reviews.json')
+    with open(filename, 'w', encoding='utf-8') as f:
+        f.write(json_str)
+
+
 def extract_shelves(reviews):
     """Sort review data into shelves dictionary.
 
@@ -286,10 +305,7 @@ def main():
 
     if '1' in cfg['phase']:
         """Save the reviews to disk."""
-        json_str = json.dumps(reviews_list, indent=2, sort_keys=True)
-        filename = os.path.join(cfg['output'], 'goodreads_reviews.json')
-        with open(filename, 'w', encoding='utf-8') as f:
-            f.write(json_str)
+        write_reviews_to_disk(reviews_list, cfg['output'])
 
     if '2' in cfg['phase']:
         """Save all the shelves to disk."""

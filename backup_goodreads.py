@@ -1,29 +1,20 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
-"""A script for backing up your Goodreads library.  Writes a backup to
-`goodreads_backup.json`, or you can provide an alternative name as the first
-command-line argument.
-
-See the README for more details.
-
-"""
-
-from __future__ import print_function
+"""A script for backing up your Goodreads library."""
 
 import argparse
 import itertools
 import json
 
-try:
-    from datetime import timezone
-except ImportError:  # Python 2
-    from time import timezone
-
+from datetime import timezone
 from datetime import datetime
-from xml.etree import ElementTree as ET
+from xml.etree import ElementTree
 
 import keyring
 import requests
+
+import csv
+import os
 
 
 def identity(x):
@@ -128,7 +119,7 @@ BOOK_TAGS = {
 }
 
 
-def _get_data_from_goodreads_api(user_id, api_key, page_no):
+def _get_data_from_goodreads_api(user_id, api_key, page_no, page_size=20):
     """Retrieve data about the reviews of a given user from the Goodreads API.
     Returns a Request object if successful, raises an Exception if not.
 
@@ -144,6 +135,7 @@ def _get_data_from_goodreads_api(user_id, api_key, page_no):
         'key': api_key,
         'id': user_id,
         'page': str(page_no),
+        'per_page': str(page_size),
     })
     if req.status_code != 200:
         raise Exception(
@@ -164,7 +156,7 @@ def _get_reviews_from_api(user_id, api_key):
         req = _get_data_from_goodreads_api(
             user_id=user_id, api_key=api_key, page_no=page_no
         )
-        reviews = ET.fromstring(req.text).find('reviews')
+        reviews = ElementTree.fromstring(req.text).find('reviews')
         for r in reviews:
             yield r
         if int(reviews.attrib['end']) >= int(reviews.attrib['total']):
@@ -195,6 +187,54 @@ def get_reviews(user_id, api_key):
         yield data
 
 
+def extract_shelves(reviews):
+    """Sort review data into shelves dictionary.
+
+    :param reviews: A list of book reviews.
+
+    """
+    shelves = {}
+    for book in reviews:
+        for shelf in book['bookshelves']:
+            if shelf not in shelves:
+                shelves[shelf] = []
+            shelves[shelf].append(book)
+    return shelves
+
+
+def write_shelves_to_disk(shelves, output_dir, header=True):
+    """Writes shelves data to disk as CSV files.
+
+    :param shelves: The shelves data to dump to CSV.
+    :param output_dir: The directory where the CSV files will be created.
+    :param header: If a header line should be included in the file.
+
+    """
+    # Fields to write to disk.
+    shelf_keys = [
+        'book_id',
+        'title',
+        'authors',
+        'isbn',
+        'isbn13',
+        'my_rating',
+        'date_added',
+        'date_read'
+    ]
+
+    for shelf_name, shelf in shelves.items():
+        filename = os.path.join(output_dir, shelf_name + '.csv')
+        with open(filename, 'w', newline='', encoding='utf-8') as csv_file:
+            csv_writer = csv.writer(csv_file, delimiter=',')
+
+            if header:
+                csv_writer.writerow(shelf_keys)
+
+            for book in shelf:
+                filtered_book = {key: book[key] for key in shelf_keys}
+                csv_writer.writerow(list(filtered_book.values()))
+
+
 def read_config():
     """Returns configuration for using the script.
 
@@ -215,14 +255,17 @@ def read_config():
         description='A script to back up reviews from Goodreads.')
 
     parser.add_argument(
-        '--output', default='goodreads_reviews.json',
-        help='output path for the backup file')
+        '--output', default='.',
+        help='output path for backup files')
     parser.add_argument(
         '--user-id', required=(user_id is None),
         help='Goodreads user ID')
     parser.add_argument(
         '--api-key', required=(api_key is None),
         help='Goodreads API key (https://www.goodreads.com/api/keys)')
+    parser.add_argument(
+        '--phase', default='1,2,3',
+        help='which phases of the script to run')
 
     config = vars(parser.parse_args())
 
@@ -235,12 +278,23 @@ def read_config():
 
 
 def main():
-    """Parse the Goodreads API and save the reviews to disk."""
     cfg = read_config()
+
+    """Parse the Goodreads API and grab all reviews."""
     reviews = get_reviews(user_id=cfg['user_id'], api_key=cfg['api_key'])
-    json_str = json.dumps(list(reviews), indent=2, sort_keys=True)
-    with open(cfg['output'], 'w', encoding='utf-8') as f:
-        f.write(json_str)
+    reviews_list = list(reviews)
+
+    if '1' in cfg['phase']:
+        """Save the reviews to disk."""
+        json_str = json.dumps(reviews_list, indent=2, sort_keys=True)
+        filename = os.path.join(cfg['output'], 'goodreads_reviews.json')
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(json_str)
+
+    if '2' in cfg['phase']:
+        """Save all the shelves to disk."""
+        shelves = extract_shelves(reviews_list)
+        write_shelves_to_disk(shelves, cfg['output'])
 
 
 if __name__ == '__main__':

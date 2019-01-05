@@ -3,8 +3,8 @@
 This is a Python script for backing up your reviews, shelves and statuses from 
 Goodreads.
 It is based on both 
-(bjaanes/goodreads-backup)[https://github.com/bjaanes/goodreads-backup] and 
-(alexwlchan/backup-goodreads)[https://github.com/alexwlchan/backup-goodreads].
+[bjaanes/goodreads-backup](https://github.com/bjaanes/goodreads-backup) and 
+[alexwlchan/backup-goodreads](https://github.com/alexwlchan/backup-goodreads).
 
 ## Installation
 
@@ -35,7 +35,7 @@ Run the script, passing your user ID and API key as command-line flags:
 $ python backup_goodreads.py --user-id=12345678 --api-key=abcdefg123
 ```
 Alternatively, these details can be set using `keyring`.
-See (its documentation)[https://pypi.org/project/keyring/#command-line-utility]
+See [its documentation](https://pypi.org/project/keyring/#command-line-utility)
 for how this is done.  
 
 To see other options, run with the ``--help`` flag:

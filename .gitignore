@@ -1,1 +1,7 @@
 goodreads_reviews.json
+
+\.idea/
+
+__pycache__/
+
+out/

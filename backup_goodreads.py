@@ -119,7 +119,7 @@ BOOK_TAGS = {
 }
 
 
-def _get_data_from_goodreads_api(user_id, api_key, page_no, page_size=20):
+def _get_data_from_goodreads_api(user_id, api_key, page_no, page_size=200):
     """Retrieve data about the reviews of a given user from the Goodreads API.
     Returns a Request object if successful, raises an Exception if not.
 

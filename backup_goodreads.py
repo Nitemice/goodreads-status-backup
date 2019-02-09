@@ -327,7 +327,7 @@ def _extract_status_from_element(element):
     progress_element = content.find('span', {'class': 'user_status_header'})
     book_title_link = progress_element.find('a', {'rel': 'nofollow'})
     status['book_title'] = convert_body(book_title_link)
-    status['book_id'] = book_title_link['href'].split('/')[-1].split('-.')[0]
+    status['book_id'] = re.split('[-.]', book_title_link['href'].split('/')[-1])[0]
 
     # The progress string can be in one of four formats:
     # 1: User is Z% done with Book_Title

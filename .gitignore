@@ -5,3 +5,4 @@ goodreads_reviews.json
 __pycache__/
 
 out/
+.vscode

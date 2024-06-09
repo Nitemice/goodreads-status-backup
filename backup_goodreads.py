@@ -88,8 +88,14 @@ def _get_data_from_goodreads_site(user_id, page_no):
 
     """
     # user_status.list gets all the statuses by a user.
+    user_agent = ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) '
+                  'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.131 '
+                  'Safari/537.36')
     req = requests.get('https://www.goodreads.com/user_status/list/' + user_id,
-                       params={'page': str(page_no)})
+                       params={'page': str(page_no)},
+                       headers={'User-Agent': user_agent}
+                       )
+
     if req.status_code != 200:
         raise Exception('Unexpected error code from Goodreads API: %s\n'
                         'Error message: %r' % (req.status_code, req.text))
@@ -144,6 +150,8 @@ def _extract_status_from_element(element):
 
     progress_element = content.find('span', {'class': 'user_status_header'})
     book_title_link = progress_element.find('a', {'rel': 'nofollow'})
+    if not book_title_link:
+        return ""
     status['book_title'] = convert_body(book_title_link)
     status['book_id'] = re.split('[-.]',
                                  book_title_link['href'].split('/')[-1])[0]
